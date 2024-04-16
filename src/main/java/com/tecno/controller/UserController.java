@@ -26,8 +26,8 @@ public class UserController {
 	public String regiterPage(Model model) {
 		
 		model.addAttribute("registerDTO",new RegisterDto());
+
 		Map<Integer,String> countriesMap = userService.getCountries();
-		
 		model.addAttribute("countries",countriesMap);
 		
 		return "registerview";
@@ -80,17 +80,37 @@ public class UserController {
 		String pwdUpdate = user.getPwdUpdate();
 		if(pwdUpdate.equalsIgnoreCase("Yes")) {
 			//pwd updated go to dashboard
-			return "redirect:dashboardView";
+			return "redirect:dashboard";
 		}else {
 			//pwd not updated go to pwd reset page
-			model.addAttribute("resetDto",new ResetPwdDto());
+			ResetPwdDto resetPwdDto=new ResetPwdDto();
+			resetPwdDto.setEmail(user.getEmail());
+			model.addAttribute("resetPwdDto", resetPwdDto);
 			return "resetPwdView";	
 		}
 	}
 	
 	@PostMapping("/resetpwd")
 	public String resetPwd(ResetPwdDto pwdDto, Model model) {
-		return "";
+		
+		if(!(pwdDto.getNewPwd().equalsIgnoreCase(pwdDto.getConfirmPwd()))) {
+			model.addAttribute("emsg","New Pwd and confirmed Pwd should be the same");
+			return "resetPwdView";	
+		}
+		
+		UserDto user = userService.getUser(pwdDto.getEmail());
+		if(user.getPwd().equalsIgnoreCase(pwdDto.getOldPwd())) {
+			boolean resetPwd = userService.resetPwd(pwdDto);
+			if(resetPwd){
+				return "redirect:dashboard";
+			}else {
+				model.addAttribute("emsg","Password update failed");
+				return "resetPwdView";
+			}
+		}else {
+			model.addAttribute("emsg","Old Password is wrong");
+			return "resetPwdView";
+		}	
 	}
 	
 	
@@ -99,14 +119,13 @@ public class UserController {
 		
 		String quote = userService.getQuote();
 		model.addAttribute("quote",quote);
+		return "dashboard";
 		
-		
-		return "dashboardView";
 	}
 	
 	@GetMapping("/logout")
 	public String logout() {
-		return "index";
+		return "redirect:/"; //this will load the binding object
 	}
 	
 }
